@@ -5,7 +5,7 @@
 //! * player input sets batter ready = true
 //! * pitcher (should initialize ready = true) begins wind-up, then pitches (setting ready = false)
 //! * when pitcher releases the ball, we set velocity/angle on it and let it travel
-//! * we check for bbox overlap while Bat.swinging is true
+//! * we check for bbox overlap while `Bat.swinging` is true
 //! * if bat and ball collide, then we do a reflection calc for the angle and pump up the
 //!   velocity on the ball
 //! * largeish bbox for bounds checking - when ball exits pitcher is ready (again)
