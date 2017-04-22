@@ -7,4 +7,4 @@ authors = ["Owen Nelson <onelson@gmail.com>"]
 omn_labs = { git = "https://github.com/onelson/OmnLabsRS.git" }
 specs = "0.7.0"
 ggez = { git = "https://github.com/ggez/ggez.git", rev = "bc43b714aaf84990aab69301429f03274d084e89" }
-
+ggez-goodies = { git = "https://github.com/ggez/ggez-goodies.git" }
