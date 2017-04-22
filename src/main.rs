@@ -9,7 +9,7 @@ mod systems;
 use std::time::Duration;
 
 use ggez::conf;
-use ggez::event;
+use ggez::event::*;
 use ggez::timer;
 use ggez::{GameResult, Context};
 use ggez::graphics::Rect;
@@ -27,10 +27,19 @@ pub type Delta = f32;
 
 #[derive(Clone, Debug)]
 pub struct TickData {
-    dt: Delta,
+    delta_millis: Delta,
     /// We only have one button to track (I think) so we can get away with a single member to
     /// track the state.
     input_state: InputState
+}
+
+impl TickData {
+    pub fn new() -> Self {
+        Self {
+            input_state: InputState::Released,
+            delta_millis: 0.
+        }
+    }
 }
 
 
@@ -85,29 +94,53 @@ impl ECS {
 }
 
 struct MainState {
+    last_tick: TickData,
     ecs: ECS,
 }
 
 impl MainState {
     fn new(ctx: &mut Context) -> GameResult<Self> {
         ctx.print_resource_stats();
-        let s = MainState { ecs: ECS::new() };
+        let s = MainState { ecs: ECS::new(), last_tick: TickData::new() };
         Ok(s)
     }
 }
 
 
-impl event::EventHandler for MainState {
+impl EventHandler for MainState {
+
+    fn key_down_event(&mut self, keycode: Keycode, _keymod: Mod, _repeat: bool) {
+        match keycode {
+            Keycode::Space => {
+                println!("Down!");
+            }
+            _ => (),
+        }
+    }
+
+    fn key_up_event(&mut self, keycode: Keycode, _keymod: Mod, _repeat: bool) {
+        match keycode {
+            Keycode::Space => {
+                println!("Up!");
+            }
+            _ => (),
+        }
+    }
+
     fn update(&mut self, _ctx: &mut Context, _dt: Duration) -> GameResult<()> {
         let delta_secs = _dt.subsec_nanos() as f32 / 1e9;
 
         // TODO: poll input
 
+        // look at `self.last_tick` here and update input state
         let tick_data = TickData {
-            dt: delta_secs,
+            delta_millis: delta_secs,
             input_state: InputState::Released
         };
-        self.ecs.tick(tick_data);
+
+        self.ecs.tick(tick_data.clone());
+        self.last_tick = tick_data;
+
         Ok(())
     }
 
@@ -129,7 +162,7 @@ pub fn main() {
     let ctx = &mut Context::load_from_conf("HWD", "HWD", conf).unwrap();
 
     let state = &mut MainState::new(ctx).unwrap();
-    if let Err(e) = event::run(ctx, state) {
+    if let Err(e) = run(ctx, state) {
         println!("Error encountered: {}", e);
     } else {
         println!("Game exited cleanly.");
