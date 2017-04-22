@@ -23,8 +23,8 @@ pub struct Pitch {
     pub factor: f32
 }
 
-impl specs::System<omn_labs::Delta> for Pitch {
-    fn run(&mut self, arg: specs::RunArg, dt: omn_labs::Delta) {
+impl specs::System<super::TickData> for Pitch {
+    fn run(&mut self, arg: specs::RunArg, data: super::TickData) {
 
         let (batter, mut pitcher) = arg.fetch(|w| {
             (w.read::<Batter>(), w.write::<Pitcher>())

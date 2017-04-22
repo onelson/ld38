@@ -15,8 +15,27 @@ use ggez::{GameResult, Context};
 use ggez::graphics::Rect;
 
 
+#[derive(Clone, Debug)]
+pub enum InputState {
+    JustPressed,
+    Pressed,
+    JustReleased,
+    Released
+}
+
+pub type Delta = f32;
+
+#[derive(Clone, Debug)]
+pub struct TickData {
+    dt: Delta,
+    /// We only have one button to track (I think) so we can get away with a single member to
+    /// track the state.
+    input_state: InputState
+}
+
+
 pub struct ECS {
-    pub planner: specs::Planner<omn_labs::Delta>,
+    pub planner: specs::Planner<TickData>,
 }
 
 impl ECS {
@@ -52,11 +71,11 @@ impl ECS {
         ECS { planner: plan }
     }
 
-    pub fn tick(&mut self, dt: omn_labs::Delta) -> bool {
+    pub fn tick(&mut self, tick_data: TickData) -> bool {
 
         // dispatch() tells the planner to run the registered systems in a
         // thread pool.
-        self.planner.dispatch(dt);
+        self.planner.dispatch(tick_data);
 
         // the wait() is like a thread.join(), and will block until the systems
         // have completed their work.
@@ -81,7 +100,14 @@ impl MainState {
 impl event::EventHandler for MainState {
     fn update(&mut self, _ctx: &mut Context, _dt: Duration) -> GameResult<()> {
         let delta_secs = _dt.subsec_nanos() as f32 / 1e9;
-        self.ecs.tick(delta_secs);
+
+        // TODO: poll input
+
+        let tick_data = TickData {
+            dt: delta_secs,
+            input_state: InputState::Released
+        };
+        self.ecs.tick(tick_data);
         Ok(())
     }
 
@@ -96,11 +122,11 @@ pub fn main() {
     let mut conf = conf::Conf::new();
     conf.window_height = 300;
     conf.window_width = 300;
-    conf.window_title = "Omn Labs RS".to_string();
+    conf.window_title = "Home World Derby".to_string();
 
     println!("Starting with default config: {:#?}", conf);
 
-    let ctx = &mut Context::load_from_conf("Omn Labs", "omnlabs", conf).unwrap();
+    let ctx = &mut Context::load_from_conf("HWD", "HWD", conf).unwrap();
 
     let state = &mut MainState::new(ctx).unwrap();
     if let Err(e) = event::run(ctx, state) {
