@@ -2,15 +2,18 @@ extern crate ggez;
 extern crate specs;
 extern crate omn_labs;
 
+
+mod components;
+mod systems;
+
 use std::time::Duration;
 
 use ggez::conf;
 use ggez::event;
 use ggez::timer;
 use ggez::{GameResult, Context};
+use ggez::graphics::Rect;
 
-mod components;
-mod systems;
 
 pub struct ECS {
     pub planner: specs::Planner<omn_labs::Delta>,
@@ -29,13 +32,20 @@ impl ECS {
 
         let pitch_sys = systems::Pitch { factor: 1. } ;
         // entities are created by combining various components via the world
-        world.create_now().build();
+        world.create_now()
+            .with(components::Pitcher { ready: false })
+            .with(components::Batter { ready: false })
+            // FIXME: I forget if the coord system is top to bottom or not.
+            // I feel like origin is top left.
+            .with(components::OuterSpace { y:  20. })
+            .with(components::Ground { y:  280. })
+            .build();
 
         // systems are registered with a planner, which manages their execution
         let mut plan = specs::Planner::new(world, 1);
 
 
-//        plan.add_system(pitch_sys, "pitch", 10);
+        plan.add_system(pitch_sys, "pitch", 10);
 
 //        plan.add_system(render_sys, "render_layer", 20);
 

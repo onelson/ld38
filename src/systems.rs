@@ -30,9 +30,11 @@ impl specs::System<omn_labs::Delta> for Pitch {
             (w.read::<Batter>(), w.write::<Pitcher>())
         });
         use specs::Join;
-        
-        for (p, b) in (&mut pitcher, &batter).iter() {
 
+        for (p, b) in (&mut pitcher, &batter).iter() {
+            if p.ready && b.ready {
+                println!("Pitch system wants to pitch!");
+            }
         }
     }
 }

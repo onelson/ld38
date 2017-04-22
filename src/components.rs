@@ -45,7 +45,7 @@ impl specs::Component for Ball {
 
 #[derive(Clone, Debug)]
 pub struct OuterSpace {
-    pub bbox: Rect,
+    pub y: f32,
 }
 
 impl specs::Component for OuterSpace {
@@ -54,7 +54,7 @@ impl specs::Component for OuterSpace {
 
 #[derive(Clone, Debug)]
 pub struct Ground {
-    pub bbox: Rect,
+    pub y: f32,
 }
 
 impl specs::Component for Ground {
