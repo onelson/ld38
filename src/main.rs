@@ -15,7 +15,7 @@ use ggez::{GameResult, Context};
 use ggez::graphics::Rect;
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum InputState {
     JustPressed,
     Pressed,
@@ -25,9 +25,9 @@ pub enum InputState {
 
 pub type Delta = f32;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TickData {
-    delta_millis: Delta,
+    delta_ms: Delta,
     /// We only have one button to track (I think) so we can get away with a single member to
     /// track the state.
     input_state: InputState
@@ -37,7 +37,7 @@ impl TickData {
     pub fn new() -> Self {
         Self {
             input_state: InputState::Released,
-            delta_millis: 0.
+            delta_ms: 0.
         }
     }
 }
@@ -89,20 +89,40 @@ impl ECS {
         // the wait() is like a thread.join(), and will block until the systems
         // have completed their work.
         self.planner.wait();
+
         true
     }
 }
 
 struct MainState {
     last_tick: TickData,
+    current_tick: TickData,
     ecs: ECS,
 }
 
 impl MainState {
     fn new(ctx: &mut Context) -> GameResult<Self> {
         ctx.print_resource_stats();
-        let s = MainState { ecs: ECS::new(), last_tick: TickData::new() };
+        let s = MainState { ecs: ECS::new(), last_tick: TickData::new(), current_tick: TickData::new() };
         Ok(s)
+    }
+
+    fn update_current_tick_data(&mut self, delta_ms: Delta) {
+
+        self.current_tick.delta_ms = delta_ms;
+
+        // If the state was "just" anything last tick, and the state hasn't been updated by an event
+        // handler during this tick, we'll "decay" the state and make it the non-"just" version.
+        match self.last_tick.input_state {
+            InputState::JustPressed if self.current_tick.input_state == InputState::JustPressed => {
+                self.current_tick.input_state = InputState::Pressed
+            }
+
+            InputState::JustReleased if self.current_tick.input_state == InputState::JustReleased => {
+                self.current_tick.input_state = InputState::Released
+            },
+            _ => ()
+        };
     }
 }
 
@@ -111,8 +131,9 @@ impl EventHandler for MainState {
 
     fn key_down_event(&mut self, keycode: Keycode, _keymod: Mod, _repeat: bool) {
         match keycode {
-            Keycode::Space => {
-                println!("Down!");
+            // guard to prevent key repeats on long holds
+            Keycode::Space if self.current_tick.input_state != InputState::Pressed => {
+                self.current_tick.input_state = InputState::JustPressed;
             }
             _ => (),
         }
@@ -120,27 +141,27 @@ impl EventHandler for MainState {
 
     fn key_up_event(&mut self, keycode: Keycode, _keymod: Mod, _repeat: bool) {
         match keycode {
+
             Keycode::Space => {
-                println!("Up!");
+                self.current_tick.input_state = InputState::JustReleased;
             }
             _ => (),
         }
     }
 
     fn update(&mut self, _ctx: &mut Context, _dt: Duration) -> GameResult<()> {
-        let delta_secs = _dt.subsec_nanos() as f32 / 1e9;
+        let delta_ms = _dt.subsec_nanos() as f32 / 1e6;
 
-        // TODO: poll input
+        self.update_current_tick_data(delta_ms);
 
-        // look at `self.last_tick` here and update input state
-        let tick_data = TickData {
-            delta_millis: delta_secs,
-            input_state: InputState::Released
-        };
 
-        self.ecs.tick(tick_data.clone());
-        self.last_tick = tick_data;
+//        println!("{:?} -> {:?}", self.last_tick, self.current_tick);
+        println!("{:?}", self.current_tick);
 
+        self.ecs.tick(self.current_tick.clone());
+        self.last_tick = self.current_tick.clone();
+
+        ggez::timer::sleep_until_next_frame(_ctx, 60);
         Ok(())
     }
 
