@@ -48,7 +48,7 @@ impl EventHandler for MainState {
 
 fn main() {
     let c = conf::Conf::new();
-    let ctx = &mut Context::load_from_conf("foo", "kd38", c).unwrap();
+    let ctx = &mut Context::load_from_conf("foo", "ld38", c).unwrap();
 
     match MainState::new(ctx) {
         Err(e) => {
