@@ -14,7 +14,7 @@
 
 use omn_labs;
 use specs;
-use specs::Join;
+
 
 use components::*;
 
@@ -29,10 +29,10 @@ impl specs::System<omn_labs::Delta> for Pitch {
         let (batter, mut pitcher) = arg.fetch(|w| {
             (w.read::<Batter>(), w.write::<Pitcher>())
         });
+        use specs::Join;
+        
+        for (p, b) in (&mut pitcher, &batter).iter() {
 
-        // FIXME compiler thinks it can't join these
-//        for (p, b) in (&mut pitcher, &batter).join() {
-//
-//        }
+        }
     }
 }
