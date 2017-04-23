@@ -191,8 +191,8 @@ impl EventHandler for MainState {
         graphics::clear(ctx);
         // draw the background before all the dynamic stuff
         let bg = self.assets.get_image(ctx, "background.png");
-//        let bg = self.assets.get_image(ctx, "pitcher.png");
-        graphics::draw(ctx, bg, Point::zero(), 0.)?;
+
+        graphics::draw(ctx, bg, Point::new(1024. / 2., 768. / 2.), 0.)?;
 
         for cmd in self.render_rx.try_iter() {
             match cmd {
