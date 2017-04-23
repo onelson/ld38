@@ -1,0 +1,43 @@
+{ "frames": [
+   {
+    "filename": "bat 0.ase",
+    "frame": { "x": 0, "y": 0, "w": 128, "h": 128 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 },
+    "sourceSize": { "w": 128, "h": 128 },
+    "duration": 200
+   },
+   {
+    "filename": "bat 1.ase",
+    "frame": { "x": 0, "y": 128, "w": 128, "h": 128 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 },
+    "sourceSize": { "w": 128, "h": 128 },
+    "duration": 200
+   },
+   {
+    "filename": "bat 2.ase",
+    "frame": { "x": 128, "y": 0, "w": 128, "h": 128 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 },
+    "sourceSize": { "w": 128, "h": 128 },
+    "duration": 500
+   }
+ ],
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.2-beta9",
+  "image": "C:\\Users\\onels_000\\projects\\ld38\\resources\\bat.png",
+  "format": "RGBA8888",
+  "size": { "w": 256, "h": 256 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "Swing", "from": 0, "to": 2, "direction": "forward" },
+   { "name": "Backswing", "from": 0, "to": 1, "direction": "reverse" },
+   { "name": "Idle", "from": 0, "to": 0, "direction": "forward" }
+  ]
+ }
+}

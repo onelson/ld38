@@ -87,7 +87,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 256 },
     "sourceSize": { "w": 256, "h": 256 },
-    "duration": 100
+    "duration": 200
    },
    {
     "filename": "pitcher 10.ase",
@@ -105,7 +105,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 256 },
     "sourceSize": { "w": 256, "h": 256 },
-    "duration": 100
+    "duration": 200
    },
    {
     "filename": "pitcher 12.ase",
@@ -114,7 +114,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 256 },
     "sourceSize": { "w": 256, "h": 256 },
-    "duration": 250
+    "duration": 150
    },
    {
     "filename": "pitcher 13.ase",
@@ -123,7 +123,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 256 },
     "sourceSize": { "w": 256, "h": 256 },
-    "duration": 100
+    "duration": 150
    },
    {
     "filename": "pitcher 14.ase",
