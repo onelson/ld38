@@ -203,7 +203,7 @@ impl EventHandler for MainState {
                 DrawCommand::Flush => {}
             }
         }
-
+        graphics::present(ctx);
         Ok(())
     }
 }
