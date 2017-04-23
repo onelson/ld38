@@ -81,8 +81,12 @@ impl specs::System<TickData> for PitcherThink {
                 println!("Pitcher is winding!");
             } else if p.winding && drained {
                 p.ready = false; // ball is in flight, and pitcher won't be ready again until the ball is recovered.
-                p.active_clip = Some(self.clips.create("Pitching", PlayMode::Loop).unwrap());
+                p.active_clip = Some(self.clips.create("Pitching", PlayMode::OneShot).unwrap());
                 println!("Pitcher is pitching!");
+            } else if !p.ready && p.winding {
+                p.winding = false;
+                p.active_clip = Some(self.clips.create("Not Ready", PlayMode::Loop).unwrap());
+                println!("Pitcher is waiting...");
             }
 
             if let Some(ref mut clip) = p.active_clip {
