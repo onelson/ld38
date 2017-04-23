@@ -7,12 +7,17 @@ mod components;
 mod systems;
 
 use std::time::Duration;
+use std::sync::mpsc::{channel, Receiver, Sender};
 
 use ggez::conf;
 use ggez::event::*;
 use ggez::timer;
-use ggez::{GameResult, Context};
-use ggez::graphics::Rect;
+use ggez::GameResult;
+use ggez::Context;
+use ggez::graphics::{self, Point};
+
+use omn_labs::assets::AssetBundle;
+use omn_labs::systems::DrawCommand;
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -30,7 +35,7 @@ pub struct TickData {
     delta_ms: Delta,
     /// We only have one button to track (I think) so we can get away with a single member to
     /// track the state.
-    input_state: InputState
+    input_state: InputState,
 }
 
 impl TickData {
@@ -45,10 +50,11 @@ impl TickData {
 
 pub struct ECS {
     pub planner: specs::Planner<TickData>,
+    render_tx: Sender<DrawCommand>,
 }
 
 impl ECS {
-    pub fn new() -> ECS {
+    pub fn new(render_tx: Sender<DrawCommand>) -> ECS {
         // The world is in charge of component storage, and as such contains all the game state.
         let mut world = specs::World::new();
         world.register::<components::Pitcher>();
@@ -58,10 +64,9 @@ impl ECS {
         world.register::<components::OuterSpace>();
         world.register::<components::Ground>();
 
-        let pitch_sys = systems::Pitch { factor: 1. } ;
         // entities are created by combining various components via the world
         world.create_now()
-            .with(components::Pitcher { ready: false })
+            .with(components::Pitcher { ready: true, winding: false })
             .with(components::Batter { ready: false })
             // FIXME: I forget if the coord system is top to bottom or not.
             // I feel like origin is top left.
@@ -73,11 +78,17 @@ impl ECS {
         let mut plan = specs::Planner::new(world, 1);
 
 
-        plan.add_system(pitch_sys, "pitch", 10);
+        let batter_sys = systems::BatterThink { } ;
+        let pitch_sys = systems::PitcherThink { factor: 1. } ;
+        plan.add_system(batter_sys, "batter", 10);
+        plan.add_system(pitch_sys, "pitcher", 15);
 
 //        plan.add_system(render_sys, "render_layer", 20);
 
-        ECS { planner: plan }
+        ECS {
+            planner: plan,
+            render_tx: render_tx
+        }
     }
 
     pub fn tick(&mut self, tick_data: TickData) -> bool {
@@ -95,15 +106,31 @@ impl ECS {
 }
 
 struct MainState {
+    assets: AssetBundle,
     last_tick: TickData,
     current_tick: TickData,
     ecs: ECS,
+    render_rx: Receiver<DrawCommand>
 }
 
 impl MainState {
     fn new(ctx: &mut Context) -> GameResult<Self> {
         ctx.print_resource_stats();
-        let s = MainState { ecs: ECS::new(), last_tick: TickData::new(), current_tick: TickData::new() };
+
+        // render pipe - Sender/Receiver
+        let (tx, rx) = channel::<DrawCommand>();
+
+        let s = MainState {
+            assets: AssetBundle::new(ctx, &vec![
+                "background.png",
+                "pitcher.png"
+            ]),
+            ecs: ECS::new(tx),
+            last_tick: TickData::new(),
+            current_tick: TickData::new(),
+            render_rx: rx
+        };
+
         Ok(s)
     }
 
@@ -151,21 +178,32 @@ impl EventHandler for MainState {
 
     fn update(&mut self, _ctx: &mut Context, _dt: Duration) -> GameResult<()> {
         let delta_ms = _dt.subsec_nanos() as f32 / 1e6;
-
         self.update_current_tick_data(delta_ms);
-
-
-//        println!("{:?} -> {:?}", self.last_tick, self.current_tick);
         println!("{:?}", self.current_tick);
-
         self.ecs.tick(self.current_tick.clone());
         self.last_tick = self.current_tick.clone();
 
-        ggez::timer::sleep_until_next_frame(_ctx, 60);
+        timer::sleep_until_next_frame(_ctx, 60);
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+        graphics::clear(ctx);
+        // draw the background before all the dynamic stuff
+        let bg = self.assets.get_image(ctx, "background.png");
+//        let bg = self.assets.get_image(ctx, "pitcher.png");
+        graphics::draw(ctx, bg, Point::zero(), 0.)?;
+
+        for cmd in self.render_rx.try_iter() {
+            match cmd {
+                DrawCommand::DrawTransformed { path, x, y, rot , .. } => {
+                    let image = self.assets.get_image(ctx, path.as_ref());
+                    graphics::draw(ctx, image, Point::new(x, y), rot)?;
+                }
+                DrawCommand::Flush => {}
+            }
+        }
+
         Ok(())
     }
 }
@@ -174,8 +212,8 @@ impl EventHandler for MainState {
 pub fn main() {
 
     let mut conf = conf::Conf::new();
-    conf.window_height = 300;
-    conf.window_width = 300;
+    conf.window_height = 768;
+    conf.window_width = 1024;
     conf.window_title = "Home World Derby".to_string();
 
     println!("Starting with default config: {:#?}", conf);

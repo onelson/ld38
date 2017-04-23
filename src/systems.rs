@@ -15,25 +15,51 @@
 use omn_labs;
 use specs;
 
+use specs::Join;
 
 use components::*;
+use super::{InputState, TickData};
 
 #[derive(Clone, Debug)]
-pub struct Pitch {
+pub struct BatterThink;
+
+impl specs::System<TickData> for BatterThink {
+    fn run(&mut self, arg: specs::RunArg, data: TickData) {
+
+        let mut batter = arg.fetch(|w| { w.write::<Batter>() });
+
+        for entity in (&mut batter).iter() {
+            if !entity.ready
+                && (data.input_state == InputState::Pressed
+                    || data.input_state == InputState::JustReleased) {
+                entity.ready = true;
+                println!("Batter Up!");
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PitcherThink {
     pub factor: f32
 }
 
-impl specs::System<super::TickData> for Pitch {
-    fn run(&mut self, arg: specs::RunArg, data: super::TickData) {
+impl specs::System<TickData> for PitcherThink {
+    fn run(&mut self, arg: specs::RunArg, data: TickData) {
 
         let (batter, mut pitcher) = arg.fetch(|w| {
             (w.read::<Batter>(), w.write::<Pitcher>())
         });
-        use specs::Join;
 
         for (p, b) in (&mut pitcher, &batter).iter() {
-            if p.ready && b.ready {
+            if p.ready && b.ready && !p.winding {
                 println!("Pitch system wants to pitch!");
+                p.winding = true;
+            }
+
+            if p.winding {
+                println!("Pitcher is winding!");
+                // TODO: add some sort of duration to the wind (based on animation clips?)
             }
         }
     }

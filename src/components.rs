@@ -3,7 +3,8 @@ use specs;
 
 #[derive(Clone, Debug)]
 pub struct Pitcher {
-    pub ready: bool
+    pub ready: bool,
+    pub winding: bool
 }
 
 impl specs::Component for Pitcher {
