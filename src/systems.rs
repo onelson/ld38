@@ -32,7 +32,7 @@ pub enum DrawCommand {
         sx: f32,
         sy: f32,
     },
-    DrawSpriteSheetCell(String, usize, graphics::Point),
+    DrawSpriteSheetCell(String, usize, graphics::Point, graphics::Point),
 }
 
 
@@ -112,11 +112,13 @@ impl specs::System<TickData> for Render {
 
             if let Some(ref clip) = pitch.active_clip {
                 if let Some(idx) = clip.get_cell() {
-                    println!("Clip: nam={}, cell={}", clip.name, idx);
+
+//                    println!("Clip: nam={}, cell={}", clip.name, idx);
                     self.tx.send(DrawCommand::DrawSpriteSheetCell(
-                        "pitcher.png".to_string(),
+                        "pitching-machine.png".to_string(),
                         idx,
-                        graphics::Point::new(800., 500.))  // FIXME: quit hardcoding position
+                        graphics::Point::new(512., 530.),
+                        graphics::Point::new(2., 2.))
                     ).unwrap();
                 }
 

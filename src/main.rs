@@ -123,12 +123,12 @@ impl MainState {
         let (tx, rx) = channel::<DrawCommand>();
 
         let bat_sheet = SpriteSheetData::from_file("resources/bat.json");
-        let pitcher_sheet = SpriteSheetData::from_file("resources/pitcher.json");
+        let pitcher_sheet = SpriteSheetData::from_file("resources/pitching-machine.json");
 
         let s = MainState {
             assets: AssetBundle::new(ctx, &vec![
                 "background.png",
-                "pitcher.png"
+                "pitching-machine.png"
             ]),
             ecs: ECS::new(tx, &bat_sheet, &pitcher_sheet),
             last_tick: TickData::new(),
@@ -206,13 +206,13 @@ impl EventHandler for MainState {
                     let image = self.assets.get_image(ctx, path.as_ref());
                     graphics::draw(ctx, image, graphics::Point::new(x, y), rot)?;
                 }
-                DrawCommand::DrawSpriteSheetCell(name, idx, pos) => {
+                DrawCommand::DrawSpriteSheetCell(name, idx, pos, scale) => {
                     let atlas = self.assets.get_image(ctx, name.as_ref());
                     let w = atlas.width() as f32;
                     let h = atlas.height() as f32;
 
                     let maybe_cell = match name.as_ref() {
-                        "pitcher.png" => Some(&self.pitcher_sheet.cells[idx]),
+                        "pitching-machine.png" => Some(&self.pitcher_sheet.cells[idx]),
                         _ => None
                     };
 
@@ -223,8 +223,8 @@ impl EventHandler for MainState {
                                 cell.bbox.y as f32 / h,
                                 cell.bbox.width as f32 / w,
                                 cell.bbox.height as f32 / h),
-                            dest: graphics::Point::new(pos.x, pos.y),
-                            scale: graphics::Point::new(1., 1.),
+                            dest: pos,
+                            scale: scale,
                             ..Default::default()
                         };
 
