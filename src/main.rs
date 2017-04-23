@@ -14,11 +14,11 @@ use ggez::event::*;
 use ggez::timer;
 use ggez::GameResult;
 use ggez::Context;
-use ggez::graphics::{self, Point};
+use ggez::graphics;
 
 use omn_labs::assets::AssetBundle;
-use omn_labs::systems::DrawCommand;
-
+use omn_labs::sprites::{SpriteSheetData, PlayMode};
+use systems::DrawCommand;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum InputState {
@@ -42,7 +42,7 @@ impl TickData {
     pub fn new() -> Self {
         Self {
             input_state: InputState::Released,
-            delta_ms: 0.
+            delta_ms: 0.,
         }
     }
 }
@@ -50,12 +50,14 @@ impl TickData {
 
 pub struct ECS {
     pub planner: specs::Planner<TickData>,
-    render_tx: Sender<DrawCommand>,
+    pub render_tx: Sender<DrawCommand>,
 }
 
 impl ECS {
-    pub fn new(render_tx: Sender<DrawCommand>) -> ECS {
-        // The world is in charge of component storage, and as such contains all the game state.
+    pub fn new(render_tx: Sender<DrawCommand>,
+               bat_sheet: &SpriteSheetData,
+               pitcher_sheet: &SpriteSheetData) -> ECS {
+
         let mut world = specs::World::new();
         world.register::<components::Pitcher>();
         world.register::<components::Batter>();
@@ -66,7 +68,11 @@ impl ECS {
 
         // entities are created by combining various components via the world
         world.create_now()
-            .with(components::Pitcher { ready: true, winding: false })
+            .with(components::Pitcher {
+                ready: true,
+                winding: false,
+                active_clip: Some(pitcher_sheet.clips.create("Ready", PlayMode::Loop).unwrap()),
+            })
             .with(components::Batter { ready: false })
             // FIXME: I forget if the coord system is top to bottom or not.
             // I feel like origin is top left.
@@ -74,16 +80,18 @@ impl ECS {
             .with(components::Ground { y:  280. })
             .build();
 
-        // systems are registered with a planner, which manages their execution
         let mut plan = specs::Planner::new(world, 1);
 
-
-        let batter_sys = systems::BatterThink { } ;
-        let pitch_sys = systems::PitcherThink { factor: 1. } ;
+        let batter_sys = systems::BatterThink { clips: bat_sheet.clips.clone() };
         plan.add_system(batter_sys, "batter", 10);
+
+        let pitch_sys = systems::PitcherThink {
+            clips: pitcher_sheet.clips.clone(),
+        };
         plan.add_system(pitch_sys, "pitcher", 15);
 
-//        plan.add_system(render_sys, "render_layer", 20);
+        let render_sys = systems::Render { tx: render_tx.clone() };
+        plan.add_system(render_sys, "render", 100);
 
         ECS {
             planner: plan,
@@ -92,15 +100,8 @@ impl ECS {
     }
 
     pub fn tick(&mut self, tick_data: TickData) -> bool {
-
-        // dispatch() tells the planner to run the registered systems in a
-        // thread pool.
         self.planner.dispatch(tick_data);
-
-        // the wait() is like a thread.join(), and will block until the systems
-        // have completed their work.
         self.planner.wait();
-
         true
     }
 }
@@ -110,7 +111,8 @@ struct MainState {
     last_tick: TickData,
     current_tick: TickData,
     ecs: ECS,
-    render_rx: Receiver<DrawCommand>
+    render_rx: Receiver<DrawCommand>,
+    pitcher_sheet: SpriteSheetData
 }
 
 impl MainState {
@@ -120,15 +122,19 @@ impl MainState {
         // render pipe - Sender/Receiver
         let (tx, rx) = channel::<DrawCommand>();
 
+        let bat_sheet = SpriteSheetData::from_file("resources/bat.json");
+        let pitcher_sheet = SpriteSheetData::from_file("resources/pitcher.json");
+
         let s = MainState {
             assets: AssetBundle::new(ctx, &vec![
                 "background.png",
                 "pitcher.png"
             ]),
-            ecs: ECS::new(tx),
+            ecs: ECS::new(tx, &bat_sheet, &pitcher_sheet),
             last_tick: TickData::new(),
             current_tick: TickData::new(),
-            render_rx: rx
+            render_rx: rx,
+            pitcher_sheet: pitcher_sheet
         };
 
         Ok(s)
@@ -179,7 +185,7 @@ impl EventHandler for MainState {
     fn update(&mut self, _ctx: &mut Context, _dt: Duration) -> GameResult<()> {
         let delta_ms = _dt.subsec_nanos() as f32 / 1e6;
         self.update_current_tick_data(delta_ms);
-        println!("{:?}", self.current_tick);
+//        println!("{:?}", self.current_tick);
         self.ecs.tick(self.current_tick.clone());
         self.last_tick = self.current_tick.clone();
 
@@ -192,15 +198,40 @@ impl EventHandler for MainState {
         // draw the background before all the dynamic stuff
         let bg = self.assets.get_image(ctx, "background.png");
 
-        graphics::draw(ctx, bg, Point::new(1024. / 2., 768. / 2.), 0.)?;
+        graphics::draw(ctx, bg, graphics::Point::new(1024. / 2., 768. / 2.), 0.)?;
 
         for cmd in self.render_rx.try_iter() {
             match cmd {
                 DrawCommand::DrawTransformed { path, x, y, rot , .. } => {
                     let image = self.assets.get_image(ctx, path.as_ref());
-                    graphics::draw(ctx, image, Point::new(x, y), rot)?;
+                    graphics::draw(ctx, image, graphics::Point::new(x, y), rot)?;
                 }
-                DrawCommand::Flush => {}
+                DrawCommand::DrawSpriteSheetCell(name, idx, pos) => {
+                    let atlas = self.assets.get_image(ctx, name.as_ref());
+                    let w = atlas.width() as f32;
+                    let h = atlas.height() as f32;
+
+                    let maybe_cell = match name.as_ref() {
+                        "pitcher.png" => Some(&self.pitcher_sheet.cells[idx]),
+                        _ => None
+                    };
+
+                    if let Some(cell) = maybe_cell {
+                        let param = graphics::DrawParam {
+                            src: graphics::Rect::new(
+                                cell.bbox.x as f32 / w,
+                                cell.bbox.y as f32 / h,
+                                cell.bbox.width as f32 / w,
+                                cell.bbox.height as f32 / h),
+                            dest: graphics::Point::new(pos.x, pos.y),
+                            scale: graphics::Point::new(1., 1.),
+                            ..Default::default()
+                        };
+
+                        graphics::draw_ex(ctx, atlas,  param)?;
+                    }
+                },
+                _ => ()
             }
         }
         graphics::present(ctx);

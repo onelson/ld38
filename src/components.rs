@@ -1,10 +1,12 @@
 use ggez::graphics::{Point, Rect};
 use specs;
+use omn_labs::sprites::{AnimationClip, SpriteSheetData};
 
 #[derive(Clone, Debug)]
 pub struct Pitcher {
     pub ready: bool,
-    pub winding: bool
+    pub winding: bool,
+    pub active_clip: Option<AnimationClip>,
 }
 
 impl specs::Component for Pitcher {

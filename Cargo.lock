@@ -583,7 +583,7 @@ dependencies = [
 [[package]]
 name = "omn_labs"
 version = "0.2.0"
-source = "git+https://github.com/onelson/OmnLabsRS.git#d84cc37742000fae69ee4aab1d17ebe3fc25ebc6"
+source = "git+https://github.com/onelson/OmnLabsRS.git#38dd21c27eb3847480e3eae25ff779839db02334"
 dependencies = [
  "ggez 0.2.1 (git+https://github.com/ggez/ggez.git)",
  "serde 0.9.14 (registry+https://github.com/rust-lang/crates.io-index)",
