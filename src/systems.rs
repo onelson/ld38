@@ -70,21 +70,23 @@ impl specs::System<TickData> for PitcherThink {
         });
 
         for (p, b) in (&mut pitcher, &batter).iter() {
-
-            let active_clip = p.clone().active_clip.unwrap();
+            let drained = {
+                if let Some(ref clip) = p.active_clip { clip.drained } else { true }
+            };
 
             if p.ready && b.ready && !p.winding {
                 println!("Pitch system wants to pitch!");
                 p.winding = true;
                 p.active_clip = Some(self.clips.create("Winding", PlayMode::OneShot).unwrap());
                 println!("Pitcher is winding!");
-            } else if p.winding && active_clip.drained() {
+            } else if p.winding && drained {
                 p.ready = false; // ball is in flight, and pitcher won't be ready again until the ball is recovered.
                 p.active_clip = Some(self.clips.create("Pitching", PlayMode::Loop).unwrap());
                 println!("Pitcher is pitching!");
             }
 
             if let Some(ref mut clip) = p.active_clip {
+//                println!("{}", clip.name);
                 clip.update(data.delta_ms);
             }
         }
@@ -110,7 +112,7 @@ impl specs::System<TickData> for Render {
 
             if let Some(ref clip) = pitch.active_clip {
                 if let Some(idx) = clip.get_cell() {
-//                    println!("Cell: {}", idx);
+                    println!("Clip: nam={}, cell={}", clip.name, idx);
                     self.tx.send(DrawCommand::DrawSpriteSheetCell(
                         "pitcher.png".to_string(),
                         idx,
