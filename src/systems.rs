@@ -41,6 +41,13 @@ pub struct BatterThink {
     pub clips: ClipStore
 }
 
+fn key_pressed(input: &InputState) -> bool {
+    match *input {
+        InputState::Pressed | InputState::JustReleased => true,
+        _ => false
+    }
+}
+
 impl specs::System<TickData> for BatterThink {
     fn run(&mut self, arg: specs::RunArg, data: TickData) {
 
@@ -49,14 +56,14 @@ impl specs::System<TickData> for BatterThink {
         for flow in (&mut game_flow).iter() {
             let maybe_phase = match (*flow).active {
                 GamePhase::WaitingForPlayer => {
-                    if data.input_state == InputState::Pressed
-                        || data.input_state == InputState::JustReleased {
+                    if key_pressed(&data.input_state) {
                         println!("Batter Up!");
                         Some(GamePhase::PlayerReady)
                     } else {
                         Some(GamePhase::WaitingForPlayer)
                     }
                 },
+
                 _ => None
             };
 
