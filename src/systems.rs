@@ -36,16 +36,65 @@ pub enum DrawCommand {
 }
 
 
-#[derive(Clone, Debug)]
-pub struct BatterThink {
-    pub clips: ClipStore
-}
 
 fn key_pressed(input: &InputState) -> bool {
     match *input {
         InputState::Pressed | InputState::JustReleased => true,
         _ => false
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct PowerMeterSys {
+    pub clips: ClipStore,
+}
+
+impl specs::System<TickData> for PowerMeterSys {
+    fn run(&mut self, arg: specs::RunArg, data: TickData) {
+        let (game_flow, mut power_meter) = arg.fetch(|w| { (w.read::<GameFlow>(), w.write::<PowerMeter>()) });
+        for (flow, meter) in (&game_flow, &mut power_meter).iter() {
+            let mut idle = false;
+            if let Some(ref clip) = meter.active_clip {
+                idle = clip.name == "No Bar";
+            }
+
+            match (*flow).active {
+                GamePhase::WaitingForPlayer => {
+                    if !idle {
+                        meter.active_clip = Some(self.clips.create("No Bar", PlayMode::Loop).unwrap());
+                    }
+                },
+                GamePhase::Windup => {
+                    meter.time += data.delta_ms;
+                    meter.power_level = (meter.time / 250.).sin();
+
+
+                    // FIXME: could skip looking at clip names if flow or TickData had a value for `prev_phase`
+                    if let Some(ref clip) = meter.active_clip {
+                        idle = clip.name == "No Bar";
+                    }
+                    if idle {
+                        meter.active_clip = Some(self.clips.create("Bar", PlayMode::Loop).unwrap());
+                    }
+
+
+//                    println!("{:?}", meter.power_level);
+                },
+                _ => meter.time = 0.
+            }
+
+            meter.pointer_clip.update(data.delta_ms);
+            if let Some(ref mut clip) = meter.active_clip {
+                clip.update(data.delta_ms);
+            }
+        }
+    }
+}
+
+
+#[derive(Clone, Debug)]
+pub struct BatterThink {
+    pub clips: ClipStore
 }
 
 impl specs::System<TickData> for BatterThink {
@@ -163,17 +212,16 @@ pub struct Render {
 impl specs::System<TickData> for Render {
     fn run(&mut self, arg: specs::RunArg, data: TickData) {
 
-        let (batter, pitcher) = arg.fetch(|w| {
-            (w.read::<Batter>(), w.read::<Pitcher>())
+        let (batter, pitcher, power_meter, game_flow) = arg.fetch(|w| {
+            (w.read::<Batter>(), w.read::<Pitcher>(), w.read::<PowerMeter>(), w.read::<GameFlow>())
         });
 
-        for (pitch, bat) in (&pitcher, &batter).iter() {
+        for (pitch, bat, meter, flow) in (&pitcher, &batter, &power_meter, &game_flow).iter() {
 //            println!("Render: {:?}", pitch);
 //            println!("Render: {:?}", bat);
 
             if let Some(ref clip) = pitch.active_clip {
                 if let Some(idx) = clip.get_cell() {
-
 //                    println!("Clip: nam={}, cell={}", clip.name, idx);
                     self.tx.send(DrawCommand::DrawSpriteSheetCell(
                         "pitching-machine.png".to_string(),
@@ -183,6 +231,33 @@ impl specs::System<TickData> for Render {
                     ).unwrap();
                 }
 
+            }
+
+            if let Some(ref clip) = meter.active_clip {
+                if let Some(idx) = clip.get_cell() {
+                    self.tx.send(DrawCommand::DrawSpriteSheetCell(
+                        "bar.png".to_string(),
+                        idx,
+                        graphics::Point::new(200., 700.),
+                        graphics::Point::new(1., 1.))
+                    ).unwrap();
+                }
+
+            }
+
+            match flow.active {
+                GamePhase::Windup | GamePhase::Pitching | GamePhase::BallInFlight => {
+                    let ref clip = meter.pointer_clip;
+                    if let Some(idx) = clip.get_cell() {
+                        self.tx.send(DrawCommand::DrawSpriteSheetCell(
+                            "pointer.png".to_string(),
+                            idx,
+                            graphics::Point::new(200. + (120. * meter.power_level), 730.),
+                            graphics::Point::new(1., 1.))
+                        ).unwrap();
+                    }
+                },
+                _ => ()
             }
         }
     }

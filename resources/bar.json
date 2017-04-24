@@ -1,0 +1,96 @@
+{ "frames": [
+   {
+    "filename": "bar 0.ase",
+    "frame": { "x": 0, "y": 0, "w": 256, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 64 },
+    "sourceSize": { "w": 256, "h": 64 },
+    "duration": 100
+   },
+   {
+    "filename": "bar 1.ase",
+    "frame": { "x": 0, "y": 65, "w": 256, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 64 },
+    "sourceSize": { "w": 256, "h": 64 },
+    "duration": 100
+   },
+   {
+    "filename": "bar 2.ase",
+    "frame": { "x": 0, "y": 130, "w": 256, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 64 },
+    "sourceSize": { "w": 256, "h": 64 },
+    "duration": 100
+   },
+   {
+    "filename": "bar 3.ase",
+    "frame": { "x": 257, "y": 0, "w": 256, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 64 },
+    "sourceSize": { "w": 256, "h": 64 },
+    "duration": 100
+   },
+   {
+    "filename": "bar 4.ase",
+    "frame": { "x": 257, "y": 65, "w": 256, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 64 },
+    "sourceSize": { "w": 256, "h": 64 },
+    "duration": 100
+   },
+   {
+    "filename": "bar 5.ase",
+    "frame": { "x": 257, "y": 130, "w": 256, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 64 },
+    "sourceSize": { "w": 256, "h": 64 },
+    "duration": 100
+   },
+   {
+    "filename": "bar 6.ase",
+    "frame": { "x": 514, "y": 0, "w": 256, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 64 },
+    "sourceSize": { "w": 256, "h": 64 },
+    "duration": 100
+   },
+   {
+    "filename": "bar 7.ase",
+    "frame": { "x": 514, "y": 65, "w": 256, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 64 },
+    "sourceSize": { "w": 256, "h": 64 },
+    "duration": 100
+   },
+   {
+    "filename": "bar 8.ase",
+    "frame": { "x": 514, "y": 130, "w": 256, "h": 64 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 256, "h": 64 },
+    "sourceSize": { "w": 256, "h": 64 },
+    "duration": 100
+   }
+ ],
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.2-beta9",
+  "image": "C:\\Users\\onels_000\\projects\\ld38\\resources\\bar.png",
+  "format": "RGBA8888",
+  "size": { "w": 1024, "h": 256 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "No Bar", "from": 0, "to": 0, "direction": "forward" },
+   { "name": "Bar", "from": 1, "to": 8, "direction": "forward" }
+  ]
+ }
+}

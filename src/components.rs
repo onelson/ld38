@@ -23,6 +23,18 @@ impl specs::Component for Pitcher {
 }
 
 #[derive(Clone, Debug)]
+pub struct PowerMeter {
+    pub time: f32,
+    pub power_level: f32,
+    pub active_clip: Option<AnimationClip>,
+    pub pointer_clip: AnimationClip
+}
+
+impl specs::Component for PowerMeter {
+    type Storage = specs::HashMapStorage<PowerMeter>;
+}
+
+#[derive(Clone, Debug)]
 pub struct Batter;
 
 impl specs::Component for Batter {

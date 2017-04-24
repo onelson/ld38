@@ -72,10 +72,13 @@ pub struct ECS {
 impl ECS {
     pub fn new(render_tx: Sender<DrawCommand>,
                bat_sheet: &SpriteSheetData,
-               pitcher_sheet: &SpriteSheetData) -> ECS {
+               pitcher_sheet: &SpriteSheetData,
+               power_meter_sheet: &SpriteSheetData,
+               pointer_sheet: &SpriteSheetData) -> ECS {
 
         let mut world = specs::World::new();
         world.register::<components::Pitcher>();
+        world.register::<components::PowerMeter>();
         world.register::<components::Batter>();
         world.register::<components::Bat>();
         world.register::<components::Ball>();
@@ -88,10 +91,21 @@ impl ECS {
                 active_clip: Some(pitcher_sheet.clips.create("Ready", PlayMode::Loop).unwrap()),
             })
             .with(components::Batter { })
+            .with(components::PowerMeter {
+                active_clip: Some(power_meter_sheet.clips.create("No Bar", PlayMode::Hold).unwrap()),
+                pointer_clip: pointer_sheet.clips.create("Default", PlayMode::Loop).unwrap(),
+                power_level: 0.,
+                time: 0.
+            })
             .with(components::GameFlow { active: GamePhase::WaitingForPlayer })
             .build();
 
         let mut plan = specs::Planner::new(world, 1);
+
+        let power_sys = systems::PowerMeterSys {
+            clips: power_meter_sheet.clips.clone()
+        };
+        plan.add_system(power_sys, "power", 10);
 
         let batter_sys = systems::BatterThink { clips: bat_sheet.clips.clone() };
         plan.add_system(batter_sys, "batter", 10);
@@ -123,7 +137,9 @@ struct MainState {
     current_tick: TickData,
     ecs: ECS,
     render_rx: Receiver<DrawCommand>,
-    pitcher_sheet: SpriteSheetData
+    pitcher_sheet: SpriteSheetData,
+    power_meter_sheet: SpriteSheetData,
+    pointer_sheet: SpriteSheetData,
 }
 
 impl MainState {
@@ -135,17 +151,23 @@ impl MainState {
 
         let bat_sheet = SpriteSheetData::from_file("resources/bat.json");
         let pitcher_sheet = SpriteSheetData::from_file("resources/pitching-machine.json");
+        let power_meter_sheet = SpriteSheetData::from_file("resources/bar.json");
+        let pointer_sheet = SpriteSheetData::from_file("resources/pointer.json");
 
         let s = MainState {
             assets: AssetBundle::new(ctx, &vec![
                 "background.png",
-                "pitching-machine.png"
+                "pitching-machine.png",
+                "bar.png",
+                "pointer.png"
             ]),
-            ecs: ECS::new(tx, &bat_sheet, &pitcher_sheet),
+            ecs: ECS::new(tx, &bat_sheet, &pitcher_sheet, &power_meter_sheet, &pointer_sheet),
             last_tick: TickData::new(),
             current_tick: TickData::new(),
             render_rx: rx,
-            pitcher_sheet: pitcher_sheet
+            pitcher_sheet: pitcher_sheet,
+            power_meter_sheet: power_meter_sheet,
+            pointer_sheet: pointer_sheet,
         };
 
         Ok(s)
@@ -224,6 +246,8 @@ impl EventHandler for MainState {
 
                     let maybe_cell = match name.as_ref() {
                         "pitching-machine.png" => Some(&self.pitcher_sheet.cells[idx]),
+                        "bar.png" => Some(&self.power_meter_sheet.cells[idx]),
+                        "pointer.png" => Some(&self.pointer_sheet.cells[idx]),
                         _ => None
                     };
 
