@@ -1,5 +1,6 @@
 extern crate ggez;
 extern crate specs;
+extern crate rand;
 extern crate omn_labs;
 
 
@@ -19,6 +20,22 @@ use ggez::graphics;
 use omn_labs::assets::AssetBundle;
 use omn_labs::sprites::{SpriteSheetData, PlayMode};
 use systems::DrawCommand;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum GamePhase {
+    WaitingForPlayer,
+    PlayerReady,
+    Windup, // variable duration
+    Pitching, // fixed length
+    BallInFlight,
+
+    // different results of a swing
+    Foul,
+    HomeRun,
+    Hit,
+    Miss
+}
+
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum InputState {
@@ -47,7 +64,6 @@ impl TickData {
     }
 }
 
-
 pub struct ECS {
     pub planner: specs::Planner<TickData>,
     pub render_tx: Sender<DrawCommand>,
@@ -63,21 +79,16 @@ impl ECS {
         world.register::<components::Batter>();
         world.register::<components::Bat>();
         world.register::<components::Ball>();
-        world.register::<components::OuterSpace>();
-        world.register::<components::Ground>();
+        world.register::<components::GameFlow>();
 
         // entities are created by combining various components via the world
         world.create_now()
             .with(components::Pitcher {
-                ready: true,
-                winding: false,
+                action_ttl: 0., // will get set by system when we enter the winding phase
                 active_clip: Some(pitcher_sheet.clips.create("Ready", PlayMode::Loop).unwrap()),
             })
-            .with(components::Batter { ready: false })
-            // FIXME: I forget if the coord system is top to bottom or not.
-            // I feel like origin is top left.
-            .with(components::OuterSpace { y:  20. })
-            .with(components::Ground { y:  280. })
+            .with(components::Batter { })
+            .with(components::GameFlow { active: GamePhase::WaitingForPlayer })
             .build();
 
         let mut plan = specs::Planner::new(world, 1);

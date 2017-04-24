@@ -17,11 +17,11 @@ use std::sync::mpsc::Sender;
 use ggez::graphics;
 use specs;
 use specs::Join;
+use rand::{self, Rng};
 
-use omn_labs;
 use omn_labs::sprites::{ClipStore, PlayMode};
 use components::*;
-use super::{InputState, TickData};
+use super::{InputState, TickData, GamePhase};
 
 pub enum DrawCommand {
     DrawTransformed {
@@ -44,14 +44,24 @@ pub struct BatterThink {
 impl specs::System<TickData> for BatterThink {
     fn run(&mut self, arg: specs::RunArg, data: TickData) {
 
-        let mut batter = arg.fetch(|w| { w.write::<Batter>() });
+        let mut game_flow = arg.fetch(|w| { w.write::<GameFlow>() });
 
-        for entity in (&mut batter).iter() {
-            if !entity.ready
-                && (data.input_state == InputState::Pressed
-                    || data.input_state == InputState::JustReleased) {
-                entity.ready = true;
-                println!("Batter Up!");
+        for flow in (&mut game_flow).iter() {
+            let maybe_phase = match (*flow).active {
+                GamePhase::WaitingForPlayer => {
+                    if data.input_state == InputState::Pressed
+                        || data.input_state == InputState::JustReleased {
+                        println!("Batter Up!");
+                        Some(GamePhase::PlayerReady)
+                    } else {
+                        Some(GamePhase::WaitingForPlayer)
+                    }
+                },
+                _ => None
+            };
+
+            if let Some(phase) = maybe_phase {
+                flow.active = phase;
             }
         }
     }
@@ -65,31 +75,63 @@ pub struct PitcherThink {
 impl specs::System<TickData> for PitcherThink {
     fn run(&mut self, arg: specs::RunArg, data: TickData) {
 
-        let (batter, mut pitcher) = arg.fetch(|w| {
-            (w.read::<Batter>(), w.write::<Pitcher>())
+        let (batter, mut game_flow, mut pitcher) = arg.fetch(|w| {
+            (w.read::<Batter>(), w.write::<GameFlow>(), w.write::<Pitcher>())
         });
 
-        for (p, b) in (&mut pitcher, &batter).iter() {
+        for (flow, pitch, bat) in (&mut game_flow, &mut pitcher, &batter).iter() {
             let drained = {
-                if let Some(ref clip) = p.active_clip { clip.drained } else { true }
+                if let Some(ref clip) = pitch.active_clip { clip.drained } else { true }
             };
 
-            if p.ready && b.ready && !p.winding {
-                println!("Pitch system wants to pitch!");
-                p.winding = true;
-                p.active_clip = Some(self.clips.create("Winding", PlayMode::OneShot).unwrap());
-                println!("Pitcher is winding!");
-            } else if p.winding && drained {
-                p.ready = false; // ball is in flight, and pitcher won't be ready again until the ball is recovered.
-                p.active_clip = Some(self.clips.create("Pitching", PlayMode::OneShot).unwrap());
-                println!("Pitcher is pitching!");
-            } else if !p.ready && p.winding {
-                p.winding = false;
-                p.active_clip = Some(self.clips.create("Not Ready", PlayMode::Loop).unwrap());
-                println!("Pitcher is waiting...");
+            let mut rng = rand::thread_rng();
+
+            let maybe_phase = match (*flow).active {
+                GamePhase::PlayerReady => {
+                    println!("Pitch system wants to pitch!");
+                    pitch.active_clip = Some(self.clips.create("Winding", PlayMode::Loop).unwrap());
+
+                    // FIXME: need to ensure this is clamped so we have a min/max that is wide
+                    // enough but won't get too small.
+                    pitch.action_ttl = rng.gen::<f32>() * 6000.;
+
+                    println!("Pitcher is winding up for {}!", pitch.action_ttl);
+                    Some(GamePhase::Windup)
+                },
+                GamePhase::Windup => {
+                    pitch.action_ttl -= data.delta_ms;
+                    if pitch.action_ttl < 0. {
+                        let clip = self.clips.create("Pitching", PlayMode::OneShot).unwrap();
+                        let duration = clip.duration;
+                        pitch.active_clip = Some(clip);
+                        println!("Pitcher is pitching for {}!", duration);
+                        Some(GamePhase::Pitching)
+                    } else {
+                        Some(GamePhase::Windup)
+                    }
+                },
+                GamePhase::Pitching if drained => {
+                    Some(GamePhase::BallInFlight)
+                },
+                GamePhase::BallInFlight => {
+                    let mut already_idle = false;
+                    if let Some(ref clip) = pitch.active_clip {
+                        already_idle = clip.name == "Not Ready";
+                    }
+                    if !already_idle {
+                        pitch.active_clip = Some(self.clips.create("Not Ready", PlayMode::Loop).unwrap())
+                    }
+                    Some(GamePhase::BallInFlight)
+                },
+                _ => None
+
+            };
+
+            if let Some(phase) = maybe_phase {
+                flow.active = phase;
             }
 
-            if let Some(ref mut clip) = p.active_clip {
+            if let Some(ref mut clip) = pitch.active_clip {
 //                println!("{}", clip.name);
                 clip.update(data.delta_ms);
             }

@@ -2,10 +2,19 @@ use ggez::graphics::{Point, Rect};
 use specs;
 use omn_labs::sprites::{AnimationClip, SpriteSheetData};
 
+
+#[derive(Clone, Debug)]
+pub struct GameFlow {
+    pub active: super::GamePhase
+}
+
+impl specs::Component for GameFlow {
+    type Storage = specs::HashMapStorage<GameFlow>;
+}
+
 #[derive(Clone, Debug)]
 pub struct Pitcher {
-    pub ready: bool,
-    pub winding: bool,
+    pub action_ttl: f32,
     pub active_clip: Option<AnimationClip>,
 }
 
@@ -14,9 +23,7 @@ impl specs::Component for Pitcher {
 }
 
 #[derive(Clone, Debug)]
-pub struct Batter {
-    pub ready: bool
-}
+pub struct Batter;
 
 impl specs::Component for Batter {
     type Storage = specs::HashMapStorage<Batter>;
@@ -43,23 +50,4 @@ pub struct Ball {
 
 impl specs::Component for Ball {
     type Storage = specs::HashMapStorage<Ball>;
-}
-
-
-#[derive(Clone, Debug)]
-pub struct OuterSpace {
-    pub y: f32,
-}
-
-impl specs::Component for OuterSpace {
-    type Storage = specs::HashMapStorage<OuterSpace>;
-}
-
-#[derive(Clone, Debug)]
-pub struct Ground {
-    pub y: f32,
-}
-
-impl specs::Component for Ground {
-    type Storage = specs::HashMapStorage<Ground>;
 }
