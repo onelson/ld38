@@ -90,11 +90,7 @@ impl specs::System<TickData> for PitcherThink {
                 GamePhase::PlayerReady => {
                     println!("Pitch system wants to pitch!");
                     pitch.active_clip = Some(self.clips.create("Winding", PlayMode::Loop).unwrap());
-
-                    // FIXME: need to ensure this is clamped so we have a min/max that is wide
-                    // enough but won't get too small.
-                    pitch.action_ttl = rng.gen::<f32>() * 6000.;
-
+                    pitch.action_ttl = 3000. + (rng.gen::<f32>() * 2500.);
                     println!("Pitcher is winding up for {}!", pitch.action_ttl);
                     Some(GamePhase::Windup)
                 },
@@ -118,10 +114,22 @@ impl specs::System<TickData> for PitcherThink {
                     if let Some(ref clip) = pitch.active_clip {
                         already_idle = clip.name == "Not Ready";
                     }
+
                     if !already_idle {
+                        pitch.action_ttl = 5000.;
                         pitch.active_clip = Some(self.clips.create("Not Ready", PlayMode::Loop).unwrap())
+                    } else {
+                        pitch.action_ttl -= data.delta_ms;
                     }
-                    Some(GamePhase::BallInFlight)
+
+                    if pitch.action_ttl < 0. {
+                        // FIXME: just a temp game state reset until we have the player side implemented
+                        pitch.active_clip = Some(self.clips.create("Ready", PlayMode::Loop).unwrap());
+                        Some(GamePhase::WaitingForPlayer)
+                    } else {
+                        Some(GamePhase::BallInFlight)
+                    }
+
                 },
                 _ => None
 
